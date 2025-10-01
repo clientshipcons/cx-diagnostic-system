@@ -3,11 +3,11 @@ import os
 from datetime import timedelta
 
 # Importar rutas
-from routes.admin_sqlite import admin_bp
-from routes.user_sqlite import user_bp
+from .routes.admin_sqlite import admin_bp
+from .routes.user_sqlite import user_bp
 
 # Importar inicialización de base de datos
-from database import init_database
+from .database import init_database
 
 def create_app():
     app = Flask(__name__)
