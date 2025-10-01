@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from database import authenticate_user, save_diagnostic, get_benchmark_stats
+from ..database import authenticate_user, save_diagnostic, get_benchmark_stats
 
 user_bp = Blueprint('user', __name__)
 

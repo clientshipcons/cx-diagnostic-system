@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from database import (
+from ..database import (
     authenticate_user, create_user, get_all_users, delete_user, 
     reset_password, get_user_stats, get_all_diagnostics, delete_diagnostic
 )
