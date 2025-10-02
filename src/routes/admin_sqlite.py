@@ -55,7 +55,7 @@ def list_users():
     """Listar todos los usuarios"""
     try:
         users = get_all_users()
-        return jsonify(users)
+        return jsonify({'users': users})
     except Exception as e:
         print(f"Error listing users: {e}")
         return jsonify({'error': 'Error obteniendo usuarios'}), 500
@@ -127,7 +127,7 @@ def list_diagnostics():
     """Listar todos los diagnósticos"""
     try:
         diagnostics = get_all_diagnostics()
-        return jsonify(diagnostics)
+        return jsonify({'diagnostics': diagnostics})
     except Exception as e:
         print(f"Error listing diagnostics: {e}")
         return jsonify({'error': 'Error obteniendo diagnósticos'}), 500
