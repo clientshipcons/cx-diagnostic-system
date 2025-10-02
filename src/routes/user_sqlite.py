@@ -31,7 +31,7 @@ def login():
         
         # Verificar en base de datos
         user = authenticate_user(username, password)
-        if user and not user.get('is_admin'):
+        if user:
             session['user_logged_in'] = True
             session['username'] = username
             session['user_data'] = user
