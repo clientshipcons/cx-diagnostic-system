@@ -6,8 +6,8 @@ from datetime import timedelta
 from .routes.admin_sqlite import admin_bp
 from .routes.user_sqlite import user_bp
 
-# Importar inicialización de base de datos SQLite
-from .database import init_database
+# Importar inicialización de base de datos PostgreSQL
+from .database_pg import init_db
 
 def create_app():
     app = Flask(__name__)
@@ -16,8 +16,8 @@ def create_app():
     app.config['SECRET_KEY'] = 'clientship-cx-diagnostic-2024-secret-key-very-secure'
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
     
-    # Inicializar base de datos SQLite
-    init_database()
+    # Inicializar base de datos PostgreSQL
+    init_db()
     
     # Registrar blueprints
     app.register_blueprint(admin_bp, url_prefix='/api/admin')

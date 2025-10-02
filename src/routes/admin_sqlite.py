@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
-from ..database import (
+from ..database_pg import (
     authenticate_user, create_user, get_all_users, 
-    get_all_diagnostics, get_user_stats
+    get_all_diagnostics, get_stats
 )
 
 admin_bp = Blueprint('admin', __name__)
@@ -44,7 +44,7 @@ def admin_logout():
 def get_dashboard_stats():
     """Obtener estadísticas del dashboard"""
     try:
-        stats = get_user_stats()
+        stats = get_stats()
         return jsonify(stats)
     except Exception as e:
         print(f"Error getting stats: {e}")
