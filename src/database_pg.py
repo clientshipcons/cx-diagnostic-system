@@ -5,8 +5,11 @@ from datetime import datetime
 import random
 import string
 
-# PostgreSQL connection string (using pooler with channel_binding)
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:Clientship2024!CX#Diagnostic@db.sgjgvfbzrhcifqflfyln.supabase.co:5432/postgres')
+# PostgreSQL connection string from environment variable
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is required")
 
 def get_connection():
     """Get a PostgreSQL database connection"""
