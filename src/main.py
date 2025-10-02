@@ -6,7 +6,7 @@ from datetime import timedelta
 from .routes.admin_sqlite import admin_bp
 from .routes.user_sqlite import user_bp
 
-# Importar inicialización de base de datos
+# Importar inicialización de base de datos SQLite
 from .database import init_database
 
 def create_app():
@@ -16,7 +16,7 @@ def create_app():
     app.config['SECRET_KEY'] = 'clientship-cx-diagnostic-2024-secret-key-very-secure'
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
     
-    # Inicializar base de datos
+    # Inicializar base de datos SQLite
     init_database()
     
     # Registrar blueprints
