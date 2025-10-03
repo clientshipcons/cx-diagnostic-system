@@ -369,3 +369,47 @@ def get_user_diagnostic(user_id):
     if diagnostic:
         return dict(diagnostic)
     return None
+
+def get_benchmark_stats():
+    """Get benchmark statistics from benchmark_stats table"""
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        # Get all benchmark stats
+        cursor.execute('''
+            SELECT dimension, avg_score, total_diagnostics
+            FROM benchmark_stats
+            ORDER BY dimension
+        ''')
+        
+        stats = cursor.fetchall()
+        
+        # Get total diagnostics count
+        cursor.execute('SELECT COUNT(*) as total FROM diagnostics WHERE responses IS NOT NULL')
+        total = cursor.fetchone()['total']
+        
+        cursor.close()
+        conn.close()
+        
+        # Format response
+        dimensions = []
+        for stat in stats:
+            dimensions.append({
+                'dimension': stat['dimension'],
+                'avg_score': float(stat['avg_score'])
+            })
+        
+        return {
+            'dimensiones': dimensions,
+            'total_diagnostics': total
+        }
+        
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        print(f"Error getting benchmark stats: {e}")
+        return {
+            'dimensiones': [],
+            'total_diagnostics': 0
+        }

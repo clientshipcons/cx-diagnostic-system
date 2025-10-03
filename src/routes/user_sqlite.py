@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from ..database_pg import authenticate_user, save_diagnostic, calculate_benchmark, get_user_diagnostic
+from ..database_pg import authenticate_user, save_diagnostic, calculate_benchmark, get_user_diagnostic, get_benchmark_stats
 
 user_bp = Blueprint('user', __name__)
 
@@ -100,13 +100,13 @@ def save_user_diagnostic():
 def get_benchmark():
     """Obtener estadísticas de benchmark"""
     try:
-        benchmark = calculate_benchmark()
+        benchmark = get_benchmark_stats()
         
         if not benchmark or benchmark.get('total_diagnostics', 0) == 0:
             # Si no hay datos, retornar N/A
             return jsonify({
-                'total_diagnostics': 0,
-                'dimensions': {}
+                'dimensiones': [],
+                'total_diagnostics': 0
             })
         
         return jsonify(benchmark)
