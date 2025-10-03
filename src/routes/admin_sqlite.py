@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, session
 from ..database_pg import (
     authenticate_user, create_user, get_all_users, 
-    get_all_diagnostics, get_stats
+    get_all_diagnostics, get_stats, delete_user,
+    reset_password, delete_diagnostic, calculate_benchmark
 )
 
 admin_bp = Blueprint('admin', __name__)
@@ -145,12 +146,18 @@ def delete_diagnostic_endpoint(diagnostic_id):
         return jsonify({'error': 'Error interno'}), 500
 
 @admin_bp.route('/recalculate-benchmark', methods=['POST'])
-def recalculate_benchmark():
+def recalculate_benchmark_route():
     """Recalcular estadísticas de benchmark"""
     try:
-        # Por ahora solo retornamos éxito
-        # En el futuro aquí se pueden hacer cálculos adicionales
-        return jsonify({'success': True, 'message': 'Benchmark recalculado'})
+        benchmark = calculate_benchmark()
+        if 'error' in benchmark:
+            return jsonify({'error': f'Error al recalcular benchmark: {benchmark["error"]}'}), 500
+        
+        return jsonify({
+            'success': True,
+            'message': f'Benchmark recalculado con {benchmark["total_diagnostics"]} diagnósticos',
+            'benchmark': benchmark
+        })
     except Exception as e:
         print(f"Error recalculating benchmark: {e}")
-        return jsonify({'error': 'Error interno'}), 500
+        return jsonify({'error': f'Error al recalcular benchmark: {str(e)}'}), 500

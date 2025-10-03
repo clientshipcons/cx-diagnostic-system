@@ -229,3 +229,143 @@ def save_diagnostic(user_id, responses, score, level):
 
 # Initialize database on import
 init_db()
+
+def delete_user(username):
+    """Delete a user by username"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('DELETE FROM users WHERE username = %s AND is_admin = FALSE', (username,))
+        deleted = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return deleted
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        conn.close()
+        print(f"Error deleting user: {e}")
+        return False
+
+def reset_password(username):
+    """Reset user password"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        new_password = generate_password()
+        cursor.execute('UPDATE users SET password = %s WHERE username = %s AND is_admin = FALSE', (new_password, username))
+        updated = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return new_password if updated else None
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        conn.close()
+        print(f"Error resetting password: {e}")
+        return None
+
+def delete_diagnostic(diagnostic_id):
+    """Delete a diagnostic by ID"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('DELETE FROM diagnostics WHERE id = %s', (diagnostic_id,))
+        deleted = cursor.rowcount > 0
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return deleted
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        conn.close()
+        print(f"Error deleting diagnostic: {e}")
+        return False
+
+def calculate_benchmark():
+    """Calculate benchmark statistics from all completed diagnostics"""
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        # Get all completed diagnostics with their dimension scores
+        cursor.execute('''
+            SELECT responses
+            FROM diagnostics
+            WHERE responses IS NOT NULL
+        ''')
+        
+        diagnostics = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        if not diagnostics:
+            return {
+                'total_diagnostics': 0,
+                'dimensions': {}
+            }
+        
+        # Calculate average scores per dimension
+        dimension_scores = {}
+        dimension_counts = {}
+        
+        for diag in diagnostics:
+            responses = diag['responses']
+            if isinstance(responses, dict) and 'dimensions' in responses:
+                for dim_name, dim_data in responses['dimensions'].items():
+                    if 'score' in dim_data:
+                        if dim_name not in dimension_scores:
+                            dimension_scores[dim_name] = 0
+                            dimension_counts[dim_name] = 0
+                        dimension_scores[dim_name] += dim_data['score']
+                        dimension_counts[dim_name] += 1
+        
+        # Calculate averages
+        benchmark = {
+            'total_diagnostics': len(diagnostics),
+            'dimensions': {}
+        }
+        
+        for dim_name in dimension_scores:
+            if dimension_counts[dim_name] > 0:
+                avg_score = dimension_scores[dim_name] / dimension_counts[dim_name]
+                benchmark['dimensions'][dim_name] = round(avg_score, 2)
+        
+        return benchmark
+        
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        print(f"Error calculating benchmark: {e}")
+        return {
+            'total_diagnostics': 0,
+            'dimensions': {},
+            'error': str(e)
+        }
+
+def get_user_diagnostic(user_id):
+    """Get the most recent diagnostic for a user"""
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    cursor.execute('''
+        SELECT id, responses, score, level, completed_at
+        FROM diagnostics
+        WHERE user_id = %s
+        ORDER BY completed_at DESC
+        LIMIT 1
+    ''', (user_id,))
+    
+    diagnostic = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if diagnostic:
+        return dict(diagnostic)
+    return None

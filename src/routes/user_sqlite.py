@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from ..database_pg import authenticate_user, save_diagnostic
+from ..database_pg import authenticate_user, save_diagnostic, calculate_benchmark, get_user_diagnostic
 
 user_bp = Blueprint('user', __name__)
 
@@ -76,23 +76,18 @@ def save_user_diagnostic():
         if user_data.get('username') == 'demo':
             return jsonify({'success': True, 'message': 'Diagnóstico demo no guardado'})
         
-        diagnostic_id = save_diagnostic(
+        # Usar los parámetros correctos de save_diagnostic
+        success = save_diagnostic(
             user_id=user_data.get('id'),
-            company_name=data.get('company_name', user_data.get('company_name', '')),
-            contact_person=data.get('contact_person', user_data.get('contact_person', '')),
-            email=data.get('email', user_data.get('email', '')),
-            industry=data.get('industry', user_data.get('industry', 'servicios')),
-            company_size=data.get('company_size', user_data.get('company_size', 'startup')),
             responses=data.get('responses', {}),
-            scores=data.get('scores', {}),
-            overall_score=data.get('overall_score', 0)
+            score=data.get('overall_score', 0),
+            level=data.get('level', 'inicial')
         )
         
-        if diagnostic_id:
+        if success:
             return jsonify({
                 'success': True,
-                'message': 'Diagnóstico guardado exitosamente',
-                'diagnostic_id': diagnostic_id
+                'message': 'Diagnóstico guardado exitosamente'
             })
         else:
             return jsonify({'error': 'Error guardando diagnóstico'}), 500
@@ -105,25 +100,36 @@ def save_user_diagnostic():
 def get_benchmark():
     """Obtener estadísticas de benchmark"""
     try:
-        # TODO: Implementar get_benchmark_stats en database_pg
-        # stats = get_benchmark_stats()
-        # Por ahora retornar datos por defecto
-        return jsonify({
-            'overall': {
-                'average': 3.0,
-                'min': 1.0,
-                'max': 5.0,
-                'count': 0
-            },
-            'dimensions': {
-                    f'dimension_{i}': {
-                        'average': 3.0,
-                        'min': 1.0,
-                        'max': 5.0,
-                        'count': 0
-                    } for i in range(1, 7)
-                }
+        benchmark = calculate_benchmark()
+        
+        if not benchmark or benchmark.get('total_diagnostics', 0) == 0:
+            # Si no hay datos, retornar N/A
+            return jsonify({
+                'total_diagnostics': 0,
+                'dimensions': {}
             })
+        
+        return jsonify(benchmark)
     except Exception as e:
         print(f"Error getting benchmark stats: {e}")
         return jsonify({'error': 'Error obteniendo estadísticas'}), 500
+
+@user_bp.route('/my-diagnostic', methods=['GET'])
+def get_my_diagnostic():
+    """Obtener el diagnóstico más reciente del usuario"""
+    try:
+        if not session.get('user_logged_in'):
+            return jsonify({'error': 'No autorizado'}), 401
+        
+        user_data = session.get('user_data', {})
+        user_id = user_data.get('id')
+        
+        if not user_id or user_data.get('username') == 'demo':
+            return jsonify({'diagnostic': None})
+        
+        diagnostic = get_user_diagnostic(user_id)
+        return jsonify({'diagnostic': diagnostic})
+        
+    except Exception as e:
+        print(f"Error getting user diagnostic: {e}")
+        return jsonify({'error': 'Error obteniendo diagnóstico'}), 500
