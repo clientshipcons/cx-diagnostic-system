@@ -75,7 +75,7 @@ def register():
             return jsonify({'success': False, 'message': 'Usuario ya existe'}), 400
         
         # Crear usuario
-        password_hash = generate_password_hash(password)
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256', salt_length=8)
         cur.execute("""
             INSERT INTO users (username, password, company_name, is_active, is_admin)
             VALUES (%s, %s, %s, %s, %s)
