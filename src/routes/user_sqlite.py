@@ -100,10 +100,16 @@ def register():
 @user_bp.route('/logout', methods=['POST'])
 def logout():
     """Logout de usuario"""
-    session.pop('user_logged_in', None)
-    session.pop('username', None)
-    session.pop('user_data', None)
-    return jsonify({'success': True, 'message': 'Logout exitoso'})
+    # Limpiar completamente la sesión
+    session.clear()
+    
+    # Crear respuesta
+    response = jsonify({'success': True, 'message': 'Logout exitoso'})
+    
+    # Eliminar la cookie de sesión explícitamente
+    response.set_cookie('session', '', expires=0, path='/')
+    
+    return response
 
 @user_bp.route('/profile', methods=['GET'])
 def get_profile():

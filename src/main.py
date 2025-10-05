@@ -16,6 +16,11 @@ def create_app():
     app.config['SECRET_KEY'] = 'clientship-cx-diagnostic-2024-secret-key-very-secure'
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
     
+    # Configuración de cookies de sesión
+    app.config['SESSION_COOKIE_SECURE'] = False  # True en producción con HTTPS
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
     # Inicializar base de datos PostgreSQL
     init_db()
     
