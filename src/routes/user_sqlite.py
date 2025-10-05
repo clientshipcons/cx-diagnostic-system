@@ -230,8 +230,7 @@ def save_responses():
         else:
             level = 'inicial'
         
-        # Guardar usando la función de database_pg
-        from database_pg import save_diagnostic
+        # Guardar usando la función de database_pg (ya importada arriba)
         result = save_diagnostic(user_id, str_responses, avg_score, level)
         
         if result:
