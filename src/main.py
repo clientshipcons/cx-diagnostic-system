@@ -5,6 +5,7 @@ from datetime import timedelta
 # Importar rutas
 from .routes.admin_sqlite import admin_bp
 from .routes.user_sqlite import user_bp
+from .routes.save_progress import save_progress_bp
 
 # Importar inicialización de base de datos PostgreSQL
 from .database_pg import init_db
@@ -27,6 +28,7 @@ def create_app():
     # Registrar blueprints
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(user_bp, url_prefix='/api/user')
+    app.register_blueprint(save_progress_bp)
     
     # Servir archivos estáticos del frontend
     @app.route('/')
