@@ -193,49 +193,30 @@ def get_my_diagnostic():
 
 @user_bp.route('/save-responses', methods=['POST'])
 def save_responses():
-    """Guardar respuestas del cuestionario"""
+    """Guardar respuestas del cuestionario de forma incremental"""
     try:
-        print("=== SAVE RESPONSES DEBUG ===")
-        
         if not session.get('user_logged_in'):
-            print("ERROR: Usuario no autenticado")
             return jsonify({'error': 'No autorizado'}), 401
         
         user_data = session.get('user_data', {})
         user_id = user_data.get('id')
-        print(f"User ID: {user_id}, Username: {user_data.get('username')}")
         
         # Si es usuario demo, no guardar en BD
         if not user_id or user_data.get('username') == 'demo':
-            print("INFO: Usuario demo, no guardar")
             return jsonify({'success': True, 'message': 'Demo user - not saved'})
         
         data = request.get_json()
         responses = data.get('responses', {})
-        print(f"Responses recibidas: {len(responses)} respuestas")
-        print(f"Tipo de claves: {type(list(responses.keys())[0]) if responses else 'N/A'}")
-        print(f"Primeras 3 respuestas: {dict(list(responses.items())[:3]) if responses else 'N/A'}")
+        
+        if not responses:
+            return jsonify({'success': True, 'message': 'No responses to save'})
+        
+        # Convertir claves a strings para JSONB (PostgreSQL maneja mejor strings como claves)
+        str_responses = {str(k): int(v) for k, v in responses.items()}
         
         # Calcular score promedio
-        if responses:
-            # Convertir claves a enteros si son strings
-            numeric_responses = {}
-            for key, value in responses.items():
-                try:
-                    numeric_key = int(key) if isinstance(key, str) else key
-                    numeric_value = int(value) if isinstance(value, str) else value
-                    numeric_responses[numeric_key] = numeric_value
-                except (ValueError, TypeError) as e:
-                    print(f"ERROR convirtiendo clave/valor: {key}={value}, error: {e}")
-                    continue
-            
-            total_score = sum(numeric_responses.values())
-            avg_score = total_score / len(numeric_responses)
-            print(f"Score calculado: {avg_score} (total: {total_score}, count: {len(numeric_responses)})")
-        else:
-            avg_score = 0
-            numeric_responses = {}
-            print("WARNING: No hay respuestas para guardar")
+        total_score = sum(str_responses.values())
+        avg_score = total_score / len(str_responses)
         
         # Determinar nivel de madurez
         if avg_score >= 4.5:
@@ -249,21 +230,17 @@ def save_responses():
         else:
             level = 'inicial'
         
-        print(f"Nivel de madurez: {level}")
-        
-        # Guardar el diagnóstico con las respuestas actualizadas
-        result = save_diagnostic(user_id, numeric_responses, avg_score, level)
-        print(f"Resultado de save_diagnostic: {result}")
+        # Guardar usando la función de database_pg
+        from database_pg import save_diagnostic
+        result = save_diagnostic(user_id, str_responses, avg_score, level)
         
         if result:
-            print("SUCCESS: Respuestas guardadas correctamente")
             return jsonify({'success': True})
         else:
-            print("ERROR: save_diagnostic retornó False")
             return jsonify({'error': 'Error guardando en base de datos'}), 500
         
     except Exception as e:
-        print(f"ERROR CRÍTICO en save_responses: {e}")
+        print(f"Error en save_responses: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Error guardando respuestas: {str(e)}'}), 500
+        return jsonify({'error': f'Error: {str(e)}'}), 500
