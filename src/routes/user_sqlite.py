@@ -208,8 +208,27 @@ def save_responses():
         data = request.get_json()
         responses = data.get('responses', {})
         
+        # Calcular score promedio
+        if responses:
+            total_score = sum(responses.values())
+            avg_score = total_score / len(responses)
+        else:
+            avg_score = 0
+        
+        # Determinar nivel de madurez
+        if avg_score >= 4.5:
+            level = 'optimizado'
+        elif avg_score >= 3.5:
+            level = 'avanzado'
+        elif avg_score >= 2.5:
+            level = 'intermedio'
+        elif avg_score >= 1.5:
+            level = 'basico'
+        else:
+            level = 'inicial'
+        
         # Guardar el diagnóstico con las respuestas actualizadas
-        save_diagnostic(user_id, responses)
+        save_diagnostic(user_id, responses, avg_score, level)
         
         return jsonify({'success': True})
         
