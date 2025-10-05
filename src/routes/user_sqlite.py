@@ -74,13 +74,12 @@ def register():
             conn.close()
             return jsonify({'success': False, 'message': 'Usuario ya existe'}), 400
         
-        # Crear usuario
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256', salt_length=8)
+        # Crear usuario (contraseña en texto plano como lo hace el sistema)
         cur.execute("""
             INSERT INTO users (username, password, company_name, is_active, is_admin)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        """, (username, password_hash, company_name, True, False))
+        """, (username, password, company_name, True, False))
         
         user_id = cur.fetchone()[0]
         conn.commit()
