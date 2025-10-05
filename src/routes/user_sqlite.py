@@ -13,6 +13,7 @@ def login():
         
         # Verificar credenciales demo hardcodeadas
         if username == 'demo' and password == 'demo123':
+            session.permanent = True
             session['user_logged_in'] = True
             session['user_id'] = 0
             session['username'] = username
@@ -25,6 +26,8 @@ def login():
                 'industry': 'consultoria',
                 'company_size': 'startup'
             }
+            session.modified = True
+            print(f"[LOGIN] Demo user logged in. Session ID: {session.get('user_id')}")
             return jsonify({
                 'success': True,
                 'user': session['user_data']
@@ -33,10 +36,13 @@ def login():
         # Verificar en base de datos
         user = authenticate_user(username, password)
         if user:
+            session.permanent = True
             session['user_logged_in'] = True
             session['user_id'] = user.get('id')
             session['username'] = username
             session['user_data'] = user
+            session.modified = True
+            print(f"[LOGIN] User {username} logged in. Session ID: {session.get('user_id')}")
             return jsonify({
                 'success': True,
                 'user': user
@@ -46,6 +52,8 @@ def login():
         
     except Exception as e:
         print(f"Error in user login: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': 'Error interno'}), 500
 
 @user_bp.route('/register', methods=['POST'])
@@ -197,20 +205,32 @@ def get_my_diagnostic():
 def save_responses():
     """Guardar respuestas del cuestionario de forma incremental"""
     try:
+        print(f"[SAVE-RESPONSES] Request received")
+        print(f"[SAVE-RESPONSES] Session logged in: {session.get('user_logged_in')}")
+        print(f"[SAVE-RESPONSES] Session user_id: {session.get('user_id')}")
+        
         if not session.get('user_logged_in'):
-            return jsonify({'error': 'No autorizado'}), 401
+            print(f"[SAVE-RESPONSES] ERROR: User not logged in")
+            return jsonify({'error': 'No autorizado - sesión no válida'}), 401
         
         user_data = session.get('user_data', {})
         user_id = user_data.get('id')
+        username = user_data.get('username')
+        
+        print(f"[SAVE-RESPONSES] User ID: {user_id}, Username: {username}")
         
         # Si es usuario demo, no guardar en BD
-        if not user_id or user_data.get('username') == 'demo':
+        if not user_id or username == 'demo':
+            print(f"[SAVE-RESPONSES] Demo user - not saving to DB")
             return jsonify({'success': True, 'message': 'Demo user - not saved'})
         
         data = request.get_json()
         responses = data.get('responses', {})
         
+        print(f"[SAVE-RESPONSES] Responses count: {len(responses)}")
+        
         if not responses:
+            print(f"[SAVE-RESPONSES] No responses to save")
             return jsonify({'success': True, 'message': 'No responses to save'})
         
         # Convertir claves a strings para JSONB (PostgreSQL maneja mejor strings como claves)
@@ -232,11 +252,14 @@ def save_responses():
         else:
             level = 'inicial'
         
+        print(f"[SAVE-RESPONSES] Saving to DB - User: {user_id}, Score: {avg_score:.2f}, Level: {level}")
+        
         # Guardar usando la función de database_pg (ya importada arriba)
         result = save_diagnostic(user_id, str_responses, avg_score, level)
         
         if result:
-            return jsonify({'success': True})
+            print(f"[SAVE-RESPONSES] Successfully saved to database")
+            return jsonify({'success': True, 'message': 'Respuestas guardadas correctamente'})
         else:
             return jsonify({'error': 'Error guardando en base de datos'}), 500
         

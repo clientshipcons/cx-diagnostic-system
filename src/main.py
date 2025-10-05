@@ -14,13 +14,23 @@ def create_app():
     app = Flask(__name__)
     
     # Configuración de la aplicación
-    app.config['SECRET_KEY'] = 'clientship-cx-diagnostic-2024-secret-key-very-secure'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clientship-cx-diagnostic-2024-secret-key-very-secure')
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
     
     # Configuración de cookies de sesión
-    app.config['SESSION_COOKIE_SECURE'] = False  # True en producción con HTTPS
+    # Detectar si estamos en producción (Railway)
+    is_production = os.environ.get('RAILWAY_ENVIRONMENT') is not None
+    
+    app.config['SESSION_COOKIE_SECURE'] = is_production  # True en producción con HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_TYPE'] = 'filesystem'
+    
+    # Hacer las sesiones permanentes por defecto
+    @app.before_request
+    def make_session_permanent():
+        from flask import session
+        session.permanent = True
     
     # Inicializar base de datos PostgreSQL
     init_db()
