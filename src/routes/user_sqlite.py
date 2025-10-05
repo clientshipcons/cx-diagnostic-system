@@ -46,6 +46,58 @@ def login():
         print(f"Error in user login: {e}")
         return jsonify({'success': False, 'message': 'Error interno'}), 500
 
+@user_bp.route('/register', methods=['POST'])
+def register():
+    """Registro temporal de usuarios para pruebas"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        company_name = data.get('company_name', 'Test Company')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'message': 'Username y password requeridos'}), 400
+        
+        # Importar aquí para evitar problemas circulares
+        from werkzeug.security import generate_password_hash
+        import psycopg2
+        import os
+        
+        # Conectar a la base de datos
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        # Verificar si el usuario ya existe
+        cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Usuario ya existe'}), 400
+        
+        # Crear usuario
+        password_hash = generate_password_hash(password)
+        cur.execute("""
+            INSERT INTO users (username, password_hash, company_name, is_active, is_admin)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (username, password_hash, company_name, True, False))
+        
+        user_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Usuario creado exitosamente',
+            'user_id': user_id,
+            'username': username
+        })
+        
+    except Exception as e:
+        print(f"Error in user register: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @user_bp.route('/logout', methods=['POST'])
 def logout():
     """Logout de usuario"""
