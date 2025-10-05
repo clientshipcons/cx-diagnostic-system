@@ -14,6 +14,7 @@ def login():
         # Verificar credenciales demo hardcodeadas
         if username == 'demo' and password == 'demo123':
             session['user_logged_in'] = True
+            session['user_id'] = 0
             session['username'] = username
             session['user_data'] = {
                 'id': 0,
@@ -33,6 +34,7 @@ def login():
         user = authenticate_user(username, password)
         if user:
             session['user_logged_in'] = True
+            session['user_id'] = user.get('id')
             session['username'] = username
             session['user_data'] = user
             return jsonify({
