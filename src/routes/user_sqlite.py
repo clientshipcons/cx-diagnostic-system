@@ -77,7 +77,7 @@ def register():
         # Crear usuario
         password_hash = generate_password_hash(password)
         cur.execute("""
-            INSERT INTO users (username, password_hash, company_name, is_active, is_admin)
+            INSERT INTO users (username, password, company_name, is_active, is_admin)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
         """, (username, password_hash, company_name, True, False))
