@@ -206,15 +206,28 @@ def get_stats():
     }
 
 def save_diagnostic(user_id, responses, score, level):
-    """Save a diagnostic result"""
+    """Save or update a diagnostic result"""
     conn = get_connection()
     cursor = conn.cursor()
     
     try:
-        cursor.execute('''
-            INSERT INTO diagnostics (user_id, responses, score, level)
-            VALUES (%s, %s, %s, %s)
-        ''', (user_id, psycopg2.extras.Json(responses), score, level))
+        # Check if diagnostic exists for this user
+        cursor.execute('SELECT id FROM diagnostics WHERE user_id = %s', (user_id,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update existing diagnostic
+            cursor.execute('''
+                UPDATE diagnostics 
+                SET responses = %s, score = %s, level = %s, completed_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s
+            ''', (psycopg2.extras.Json(responses), score, level, user_id))
+        else:
+            # Insert new diagnostic
+            cursor.execute('''
+                INSERT INTO diagnostics (user_id, responses, score, level)
+                VALUES (%s, %s, %s, %s)
+            ''', (user_id, psycopg2.extras.Json(responses), score, level))
         
         conn.commit()
         cursor.close()
