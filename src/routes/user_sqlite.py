@@ -195,25 +195,47 @@ def get_my_diagnostic():
 def save_responses():
     """Guardar respuestas del cuestionario"""
     try:
+        print("=== SAVE RESPONSES DEBUG ===")
+        
         if not session.get('user_logged_in'):
+            print("ERROR: Usuario no autenticado")
             return jsonify({'error': 'No autorizado'}), 401
         
         user_data = session.get('user_data', {})
         user_id = user_data.get('id')
+        print(f"User ID: {user_id}, Username: {user_data.get('username')}")
         
         # Si es usuario demo, no guardar en BD
         if not user_id or user_data.get('username') == 'demo':
+            print("INFO: Usuario demo, no guardar")
             return jsonify({'success': True, 'message': 'Demo user - not saved'})
         
         data = request.get_json()
         responses = data.get('responses', {})
+        print(f"Responses recibidas: {len(responses)} respuestas")
+        print(f"Tipo de claves: {type(list(responses.keys())[0]) if responses else 'N/A'}")
+        print(f"Primeras 3 respuestas: {dict(list(responses.items())[:3]) if responses else 'N/A'}")
         
         # Calcular score promedio
         if responses:
-            total_score = sum(responses.values())
-            avg_score = total_score / len(responses)
+            # Convertir claves a enteros si son strings
+            numeric_responses = {}
+            for key, value in responses.items():
+                try:
+                    numeric_key = int(key) if isinstance(key, str) else key
+                    numeric_value = int(value) if isinstance(value, str) else value
+                    numeric_responses[numeric_key] = numeric_value
+                except (ValueError, TypeError) as e:
+                    print(f"ERROR convirtiendo clave/valor: {key}={value}, error: {e}")
+                    continue
+            
+            total_score = sum(numeric_responses.values())
+            avg_score = total_score / len(numeric_responses)
+            print(f"Score calculado: {avg_score} (total: {total_score}, count: {len(numeric_responses)})")
         else:
             avg_score = 0
+            numeric_responses = {}
+            print("WARNING: No hay respuestas para guardar")
         
         # Determinar nivel de madurez
         if avg_score >= 4.5:
@@ -227,11 +249,21 @@ def save_responses():
         else:
             level = 'inicial'
         
-        # Guardar el diagnóstico con las respuestas actualizadas
-        save_diagnostic(user_id, responses, avg_score, level)
+        print(f"Nivel de madurez: {level}")
         
-        return jsonify({'success': True})
+        # Guardar el diagnóstico con las respuestas actualizadas
+        result = save_diagnostic(user_id, numeric_responses, avg_score, level)
+        print(f"Resultado de save_diagnostic: {result}")
+        
+        if result:
+            print("SUCCESS: Respuestas guardadas correctamente")
+            return jsonify({'success': True})
+        else:
+            print("ERROR: save_diagnostic retornó False")
+            return jsonify({'error': 'Error guardando en base de datos'}), 500
         
     except Exception as e:
-        print(f"Error saving responses: {e}")
-        return jsonify({'error': 'Error guardando respuestas'}), 500
+        print(f"ERROR CRÍTICO en save_responses: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error guardando respuestas: {str(e)}'}), 500
