@@ -190,3 +190,29 @@ def get_my_diagnostic():
     except Exception as e:
         print(f"Error getting user diagnostic: {e}")
         return jsonify({'error': 'Error obteniendo diagnóstico'}), 500
+
+@user_bp.route('/save-responses', methods=['POST'])
+def save_responses():
+    """Guardar respuestas del cuestionario"""
+    try:
+        if not session.get('user_logged_in'):
+            return jsonify({'error': 'No autorizado'}), 401
+        
+        user_data = session.get('user_data', {})
+        user_id = user_data.get('id')
+        
+        # Si es usuario demo, no guardar en BD
+        if not user_id or user_data.get('username') == 'demo':
+            return jsonify({'success': True, 'message': 'Demo user - not saved'})
+        
+        data = request.get_json()
+        responses = data.get('responses', {})
+        
+        # Guardar el diagnóstico con las respuestas actualizadas
+        save_diagnostic(user_id, responses)
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Error saving responses: {e}")
+        return jsonify({'error': 'Error guardando respuestas'}), 500
