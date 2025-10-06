@@ -324,18 +324,15 @@ def recalculate_benchmark():
         return auth_check
     
     try:
+        from ..database_pg import recalculate_benchmark_stats
+        
         # Recalcular estadísticas de benchmark
-        diagnostics = DiagnosticResult.query.all()
+        result = recalculate_benchmark_stats()
         
-        if not diagnostics:
-            return jsonify({'message': 'No hay diagnósticos para calcular benchmark'})
-        
-        # Aquí iría la lógica de recálculo de benchmark
-        # Por simplicidad, solo retornamos éxito
-        
-        return jsonify({
-            'success': True,
-            'message': f'Benchmark recalculado con {len(diagnostics)} diagnósticos'
-        })
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+            
     except Exception as e:
         return jsonify({'error': f'Error recalculando benchmark: {str(e)}'}), 500

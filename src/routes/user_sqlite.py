@@ -259,6 +259,21 @@ def save_responses():
         
         if result:
             print(f"[SAVE-RESPONSES] Successfully saved to database")
+            
+            # Si el cuestionario está 100% completo (69 preguntas), recalcular benchmark automáticamente
+            if len(str_responses) >= 69:
+                print(f"[SAVE-RESPONSES] Cuestionario completo (100%) - Recalculando benchmark...")
+                try:
+                    from ..database_pg import recalculate_benchmark_stats
+                    benchmark_result = recalculate_benchmark_stats()
+                    if benchmark_result['success']:
+                        print(f"[SAVE-RESPONSES] Benchmark recalculado exitosamente")
+                    else:
+                        print(f"[SAVE-RESPONSES] Error recalculando benchmark: {benchmark_result.get('message')}")
+                except Exception as e:
+                    print(f"[SAVE-RESPONSES] Error recalculando benchmark: {e}")
+                    # No fallar el guardado si falla el recálculo
+            
             return jsonify({'success': True, 'message': 'Respuestas guardadas correctamente'})
         else:
             return jsonify({'error': 'Error guardando en base de datos'}), 500
