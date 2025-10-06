@@ -405,17 +405,30 @@ def get_benchmark_stats():
         cursor.close()
         conn.close()
         
-        # Format response
-        dimensions = []
+        # Format response in the format expected by the frontend
+        dimension_averages = {}
+        dimension_minimums = {}
+        dimension_maximums = {}
+        
         for stat in stats:
-            dimensions.append({
-                'dimension': stat['dimension'],
-                'avg_score': float(stat['avg_score'])
-            })
+            dim_name = stat['dimension']
+            avg_score = float(stat['avg_score'])
+            dimension_averages[dim_name] = avg_score
+            # Por ahora usamos el promedio como min/max, se puede mejorar calculando desde las respuestas
+            dimension_minimums[dim_name] = max(1.0, avg_score - 0.5)
+            dimension_maximums[dim_name] = min(5.0, avg_score + 0.5)
+        
+        # Calculate overall average
+        overall_average = sum(dimension_averages.values()) / len(dimension_averages) if dimension_averages else 0.0
         
         return {
-            'dimensiones': dimensions,
-            'total_diagnostics': total
+            'total_diagnostics': total,
+            'dimension_averages': dimension_averages,
+            'dimension_minimums': dimension_minimums,
+            'dimension_maximums': dimension_maximums,
+            'overall_average': overall_average,
+            'overall_minimum': min(dimension_minimums.values()) if dimension_minimums else 0.0,
+            'overall_maximum': max(dimension_maximums.values()) if dimension_maximums else 0.0
         }
         
     except Exception as e:
@@ -423,8 +436,13 @@ def get_benchmark_stats():
         conn.close()
         print(f"Error getting benchmark stats: {e}")
         return {
-            'dimensiones': [],
-            'total_diagnostics': 0
+            'total_diagnostics': 0,
+            'dimension_averages': {},
+            'dimension_minimums': {},
+            'dimension_maximums': {},
+            'overall_average': 0.0,
+            'overall_minimum': 0.0,
+            'overall_maximum': 0.0
         }
 
 
