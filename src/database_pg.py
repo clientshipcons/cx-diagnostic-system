@@ -388,6 +388,16 @@ def get_benchmark_stats():
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
+    # Mapeo inverso: de nombres a IDs numéricos
+    NAME_TO_ID = {
+        'estrategia_cx': '1',
+        'arquitectura_cx': '2',
+        'insights_cx': '3',
+        'cultura_cambio': '4',
+        'innovacion_cx': '5',
+        'governance_cx': '6'
+    }
+    
     try:
         # Get all benchmark stats
         cursor.execute('''
@@ -412,11 +422,13 @@ def get_benchmark_stats():
         
         for stat in stats:
             dim_name = stat['dimension']
+            # Convertir nombre a ID numérico
+            dim_id = NAME_TO_ID.get(dim_name, dim_name)
             avg_score = float(stat['avg_score'])
-            dimension_averages[dim_name] = avg_score
+            dimension_averages[dim_id] = avg_score
             # Por ahora usamos el promedio como min/max, se puede mejorar calculando desde las respuestas
-            dimension_minimums[dim_name] = max(1.0, avg_score - 0.5)
-            dimension_maximums[dim_name] = min(5.0, avg_score + 0.5)
+            dimension_minimums[dim_id] = max(1.0, avg_score - 0.5)
+            dimension_maximums[dim_id] = min(5.0, avg_score + 0.5)
         
         # Calculate overall average
         overall_average = sum(dimension_averages.values()) / len(dimension_averages) if dimension_averages else 0.0
