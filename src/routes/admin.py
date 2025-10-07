@@ -203,6 +203,42 @@ def create_user():
         db.session.rollback()
         return jsonify({'error': f'Error al crear usuario: {str(e)}'}), 500
 
+@admin_bp.route('/migrate-cascade-delete', methods=['POST'])
+def migrate_cascade_delete():
+    """Endpoint temporal para migrar la base de datos a ON DELETE CASCADE"""
+    auth_check = require_admin()
+    if auth_check:
+        return auth_check
+    
+    try:
+        from sqlalchemy import text
+        
+        # Eliminar la restricción existente
+        db.session.execute(text("""
+            ALTER TABLE diagnostics 
+            DROP CONSTRAINT IF EXISTS diagnostics_user_id_fkey;
+        """))
+        
+        # Agregar la nueva restricción con ON DELETE CASCADE
+        db.session.execute(text("""
+            ALTER TABLE diagnostics 
+            ADD CONSTRAINT diagnostics_user_id_fkey 
+            FOREIGN KEY (user_id) 
+            REFERENCES users(id) 
+            ON DELETE CASCADE;
+        """))
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Migración completada exitosamente. Ahora los usuarios se pueden eliminar automáticamente con sus diagnósticos.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error en migración: {str(e)}")
+        return jsonify({'error': f'Error en migración: {str(e)}'}), 500
+
 @admin_bp.route('/users/<username>', methods=['DELETE'])
 def delete_user(username):
     auth_check = require_admin()
@@ -216,14 +252,7 @@ def delete_user(username):
         if not user:
             return jsonify({'error': f'Usuario {username} no encontrado'}), 404
         
-        user_id = user.id
-        
-        # Usar SQL directo para eliminar diagnósticos primero
-        from sqlalchemy import text
-        db.session.execute(text("DELETE FROM diagnostics WHERE user_id = :user_id"), {"user_id": user_id})
-        db.session.commit()
-        
-        # Ahora eliminar el usuario
+        # Simplemente eliminar el usuario - CASCADE se encargará de los diagnósticos
         db.session.delete(user)
         db.session.commit()
         
