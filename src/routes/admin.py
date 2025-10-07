@@ -218,22 +218,18 @@ def delete_user(username):
         
         user_id = user.id
         
-        # Primero, eliminar todos los diagnósticos asociados
-        diagnostics_deleted = DiagnosticResult.query.filter_by(user_id=user_id).delete(synchronize_session=False)
-        
-        # Hacer flush para ejecutar los deletes antes de eliminar el usuario
-        db.session.flush()
+        # Usar SQL directo para eliminar diagnósticos primero
+        from sqlalchemy import text
+        db.session.execute(text("DELETE FROM diagnostics WHERE user_id = :user_id"), {"user_id": user_id})
+        db.session.commit()
         
         # Ahora eliminar el usuario
         db.session.delete(user)
-        
-        # Commit de todas las operaciones
         db.session.commit()
         
         return jsonify({
             'success': True, 
-            'message': f'Usuario {username} eliminado exitosamente',
-            'diagnostics_deleted': diagnostics_deleted
+            'message': f'Usuario {username} eliminado exitosamente'
         })
     except Exception as e:
         db.session.rollback()
