@@ -356,3 +356,4 @@ def recalculate_benchmark():
             
     except Exception as e:
         return jsonify({'error': f'Error recalculando benchmark: {str(e)}'}), 500
+# Force redeploy Tue Oct  7 13:52:47 EDT 2025
