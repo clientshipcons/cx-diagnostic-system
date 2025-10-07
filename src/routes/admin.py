@@ -203,14 +203,20 @@ def create_user():
         db.session.rollback()
         return jsonify({'error': f'Error al crear usuario: {str(e)}'}), 500
 
-@admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
+@admin_bp.route('/users/<username>', methods=['DELETE'])
+def delete_user(username):
     auth_check = require_admin()
     if auth_check:
         return auth_check
     
     try:
-        user = User.query.get_or_404(user_id)
+        # Buscar usuario por username
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({'error': f'Usuario {username} no encontrado'}), 404
+        
+        user_id = user.id
         
         # Eliminar diagnósticos asociados
         DiagnosticResult.query.filter_by(user_id=user_id).delete()
@@ -219,19 +225,23 @@ def delete_user(user_id):
         db.session.delete(user)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Usuario eliminado exitosamente'})
+        return jsonify({'success': True, 'message': f'Usuario {username} eliminado exitosamente'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Error al eliminar usuario: {str(e)}'}), 500
 
-@admin_bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
-def reset_password(user_id):
+@admin_bp.route('/users/<username>/reset-password', methods=['POST'])
+def reset_password(username):
     auth_check = require_admin()
     if auth_check:
         return auth_check
     
     try:
-        user = User.query.get_or_404(user_id)
+        # Buscar usuario por username
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({'error': f'Usuario {username} no encontrado'}), 404
         
         # Generar nueva contraseña
         new_password = f"cx{random.randint(1000, 9999)}"
