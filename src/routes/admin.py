@@ -218,16 +218,26 @@ def delete_user(username):
         
         user_id = user.id
         
-        # Eliminar diagnósticos asociados
-        DiagnosticResult.query.filter_by(user_id=user_id).delete()
+        # Primero, eliminar todos los diagnósticos asociados
+        diagnostics_deleted = DiagnosticResult.query.filter_by(user_id=user_id).delete(synchronize_session=False)
         
-        # Eliminar usuario
+        # Hacer flush para ejecutar los deletes antes de eliminar el usuario
+        db.session.flush()
+        
+        # Ahora eliminar el usuario
         db.session.delete(user)
+        
+        # Commit de todas las operaciones
         db.session.commit()
         
-        return jsonify({'success': True, 'message': f'Usuario {username} eliminado exitosamente'})
+        return jsonify({
+            'success': True, 
+            'message': f'Usuario {username} eliminado exitosamente',
+            'diagnostics_deleted': diagnostics_deleted
+        })
     except Exception as e:
         db.session.rollback()
+        print(f"Error deleting user: {str(e)}")
         return jsonify({'error': f'Error al eliminar usuario: {str(e)}'}), 500
 
 @admin_bp.route('/users/<username>/reset-password', methods=['POST'])
