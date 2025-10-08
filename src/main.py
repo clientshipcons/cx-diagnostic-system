@@ -3,7 +3,7 @@ import os
 from datetime import timedelta
 
 # Importar rutas
-from .routes.admin import admin_bp
+from .routes.admin_sqlite import admin_bp
 from .routes.user_sqlite import user_bp
 from .routes.save_progress import save_progress_bp
 

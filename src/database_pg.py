@@ -244,13 +244,21 @@ def save_diagnostic(user_id, responses, score, level):
 init_db()
 
 def delete_user(username):
-    """Delete a user by username"""
+    """Delete a user by username - eliminando primero sus diagnósticos"""
     conn = get_connection()
     cursor = conn.cursor()
     
     try:
+        # Primero eliminar todos los diagnósticos del usuario
+        cursor.execute('''
+            DELETE FROM diagnostics 
+            WHERE user_id IN (SELECT id FROM users WHERE username = %s)
+        ''', (username,))
+        
+        # Luego eliminar el usuario (solo si no es admin)
         cursor.execute('DELETE FROM users WHERE username = %s AND is_admin = FALSE', (username,))
         deleted = cursor.rowcount > 0
+        
         conn.commit()
         cursor.close()
         conn.close()
