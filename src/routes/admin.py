@@ -246,14 +246,34 @@ def delete_user(username):
         return auth_check
     
     try:
-        # Buscar usuario por username
-        user = User.query.filter_by(username=username).first()
+        from sqlalchemy import text
         
-        if not user:
+        # Buscar usuario por username usando SQL directo
+        result = db.session.execute(
+            text("SELECT id FROM users WHERE username = :username"),
+            {"username": username}
+        )
+        user_row = result.fetchone()
+        
+        if not user_row:
             return jsonify({'error': f'Usuario {username} no encontrado'}), 404
         
-        # Simplemente eliminar el usuario - CASCADE se encargará de los diagnósticos
-        db.session.delete(user)
+        user_id = user_row[0]
+        
+        # Eliminar diagnósticos y usuario en una sola transacción SQL
+        # Primero eliminar diagnósticos
+        db.session.execute(
+            text("DELETE FROM diagnostics WHERE user_id = :user_id"),
+            {"user_id": user_id}
+        )
+        
+        # Luego eliminar usuario
+        db.session.execute(
+            text("DELETE FROM users WHERE id = :user_id"),
+            {"user_id": user_id}
+        )
+        
+        # Commit de toda la transacción
         db.session.commit()
         
         return jsonify({
